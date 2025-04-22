@@ -1,0 +1,3 @@
+# Python dependencies
+praw>=7.6.0
+kafka-python>=2.0.2

@@ -1,0 +1,19 @@
+{
+  "reddit": {
+    "client_id": "886MiMrUx6Kjv60nKp4wFw",
+    "client_secret": "0EmuRSj36XEkn6JhhB_K9Hr5k2BdYQ",
+    "user_agent": "linux:Sentiment Analysis Dashboard:v1.0 (by /u/TraditionalFact4215)"
+  },
+  "kafka": {
+    "bootstrap_servers": [
+      "localhost:9092"
+    ],
+    "reddit_topic": "reddit-raw-data"
+  },
+  "subreddits": [
+    "wallstreetbets",
+    "stocks",
+    "investing",
+    "cryptocurrency"
+  ]
+}
