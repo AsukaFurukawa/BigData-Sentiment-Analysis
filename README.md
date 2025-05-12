@@ -35,6 +35,76 @@ This system provides a complete sentiment analysis pipeline for financial and te
 - Analytics results
 - Data source management
 
+## Data Sources and Big Data Implementation
+
+### Live Data Sources
+The system collects data from the following public sources:
+
+1. **Financial News RSS Feeds**:
+   - Reuters Finance
+   - Bloomberg
+   - CNBC
+   - Financial Times
+   - Wall Street Journal
+
+2. **Technology News RSS Feeds**:
+   - TechCrunch
+   - Wired
+   - The Verge
+   - Ars Technica
+   - MIT Technology Review
+
+3. **Reddit Data**:
+   - r/investing, r/stocks, r/finance
+   - r/technology, r/tech, r/programming
+   - Uses Reddit's JSON API to fetch recent posts and comments
+
+4. **Hacker News API**:
+   - Fetches top stories and their comments
+   - Particularly useful for technology sentiment
+
+5. **Optional Market Data Integration**:
+   - Alpha Vantage API
+   - Yahoo Finance data through yfinance
+
+### Big Data Implementation
+
+The system implements big data principles through:
+
+1. **Distributed Processing Architecture**:
+   - Kafka-based message queue for scalable data ingestion
+   - Parallel processing capabilities for handling large data volumes
+   - Batch and stream processing options
+
+2. **Data Volume Handling**:
+   - Efficient SQLite databases with optimized schemas
+   - Incremental data loading to manage large datasets
+   - Data retention policies to handle historical data
+
+3. **Real-time Processing**:
+   - Stream processing capabilities for immediate analysis
+   - Near-real-time dashboard updates
+   - High-frequency data collection options
+
+4. **Analytical Techniques**:
+   - Entity extraction and network analysis
+   - Time-series forecasting for sentiment trends
+   - Advanced NLP using transformer models
+   - Multi-dimensional data analysis through various visualizations
+
+5. **Scalability**:
+   - Configurable collection frequency for each data source
+   - On-demand processing for resource optimization
+   - Source prioritization based on data quality and relevance
+
+### Data Flow
+
+1. **Collection**: Data collectors fetch content from public APIs and RSS feeds
+2. **Processing**: NLP pipeline extracts sentiment, entities, and relationships
+3. **Storage**: Processed data is stored in structured databases
+4. **Analysis**: Advanced analytics derive insights from the processed data
+5. **Visualization**: Interactive dashboard presents insights in real-time
+
 ## Installation
 
 ### Prerequisites

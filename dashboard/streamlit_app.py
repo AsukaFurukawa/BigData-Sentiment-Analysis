@@ -113,13 +113,41 @@ def load_market_data(days=30, symbols=None):
 def load_correlation_results():
     """Load most recent correlation analysis results"""
     if not os.path.exists(CORRELATION_RESULTS):
-        return None
+        # Create sample correlation data if directory doesn't exist
+        st.info("Creating sample correlation data for demonstration...")
+        
+        # Sample data structure
+        sample_data = {
+            'AAPL': [0.72, 0.35, -0.28, 0.45],
+            'MSFT': [0.65, 0.43, -0.18, 0.51],
+            'GOOGL': [0.58, 0.39, -0.22, 0.38],
+            'AMZN': [0.62, 0.41, -0.15, 0.42],
+            'TSLA': [0.48, 0.37, -0.34, 0.29],
+            '^GSPC': [0.51, 0.29, -0.32, 0.37]
+        }
+        
+        # Create DataFrame
+        return pd.DataFrame(sample_data, index=['finance_positive', 'tech_positive', 'negative_overall', 'entity_mentions'])
     
     try:
         # Find most recent correlation file
         correlation_files = [f for f in os.listdir(CORRELATION_RESULTS) if f.startswith('correlation_pearson')]
         if not correlation_files:
-            return None
+            # Create sample data if no files exist
+            st.info("Creating sample correlation data for demonstration...")
+            
+            # Sample data structure
+            sample_data = {
+                'AAPL': [0.72, 0.35, -0.28, 0.45],
+                'MSFT': [0.65, 0.43, -0.18, 0.51],
+                'GOOGL': [0.58, 0.39, -0.22, 0.38],
+                'AMZN': [0.62, 0.41, -0.15, 0.42],
+                'TSLA': [0.48, 0.37, -0.34, 0.29],
+                '^GSPC': [0.51, 0.29, -0.32, 0.37]
+            }
+            
+            # Create DataFrame
+            return pd.DataFrame(sample_data, index=['finance_positive', 'tech_positive', 'negative_overall', 'entity_mentions'])
         
         # Sort by date (in filename)
         most_recent = sorted(correlation_files)[-1]
@@ -131,18 +159,37 @@ def load_correlation_results():
     
     except Exception as e:
         st.error(f"Error loading correlation results: {str(e)}")
-        return None
+        
+        # Return sample data in case of error
+        st.info("Creating sample correlation data as fallback...")
+        
+        # Sample data structure
+        sample_data = {
+            'AAPL': [0.72, 0.35, -0.28, 0.45],
+            'MSFT': [0.65, 0.43, -0.18, 0.51],
+            'GOOGL': [0.58, 0.39, -0.22, 0.38],
+            'AMZN': [0.62, 0.41, -0.15, 0.42],
+            'TSLA': [0.48, 0.37, -0.34, 0.29],
+            '^GSPC': [0.51, 0.29, -0.32, 0.37]
+        }
+        
+        # Create DataFrame
+        return pd.DataFrame(sample_data, index=['finance_positive', 'tech_positive', 'negative_overall', 'entity_mentions'])
 
 def load_entity_data():
     """Load most recent entity analysis results"""
     if not os.path.exists(ENTITY_RESULTS):
-        return None
+        # Create sample entity data if directory doesn't exist
+        st.info("Creating sample entity data for demonstration...")
+        return create_sample_entity_data()
     
     try:
         # Find most recent central entities file
         entity_files = [f for f in os.listdir(ENTITY_RESULTS) if f.startswith('central_entities')]
         if not entity_files:
-            return None
+            # Create sample data if no files exist
+            st.info("Creating sample entity data for demonstration...")
+            return create_sample_entity_data()
         
         # Sort by date (in filename)
         most_recent = sorted(entity_files)[-1]
@@ -156,7 +203,34 @@ def load_entity_data():
     
     except Exception as e:
         st.error(f"Error loading entity data: {str(e)}")
-        return None
+        
+        # Return sample data in case of error
+        st.info("Creating sample entity data as fallback...")
+        return create_sample_entity_data()
+
+def create_sample_entity_data():
+    """Create sample entity data for demonstration"""
+    
+    # Create sample entities with realistic data
+    sample_entities = [
+        {"entity": "Apple", "centrality_score": 0.85, "mentions": 120, "sentiment": 0.72, "domains": ["technology", "finance"]},
+        {"entity": "Tesla", "centrality_score": 0.76, "mentions": 95, "sentiment": 0.65, "domains": ["technology", "finance"]},
+        {"entity": "Bitcoin", "centrality_score": 0.68, "mentions": 80, "sentiment": 0.45, "domains": ["finance"]},
+        {"entity": "Amazon", "centrality_score": 0.65, "mentions": 75, "sentiment": 0.58, "domains": ["technology", "finance"]},
+        {"entity": "Nvidia", "centrality_score": 0.62, "mentions": 72, "sentiment": 0.78, "domains": ["technology"]},
+        {"entity": "Google", "centrality_score": 0.57, "mentions": 68, "sentiment": 0.62, "domains": ["technology"]},
+        {"entity": "Microsoft", "centrality_score": 0.54, "mentions": 65, "sentiment": 0.67, "domains": ["technology"]},
+        {"entity": "Fed", "centrality_score": 0.48, "mentions": 60, "sentiment": 0.40, "domains": ["finance"]},
+        {"entity": "Inflation", "centrality_score": 0.45, "mentions": 55, "sentiment": 0.35, "domains": ["finance"]},
+        {"entity": "AI", "centrality_score": 0.42, "mentions": 50, "sentiment": 0.72, "domains": ["technology"]},
+        {"entity": "Meta", "centrality_score": 0.38, "mentions": 45, "sentiment": 0.56, "domains": ["technology"]},
+        {"entity": "Interest Rates", "centrality_score": 0.36, "mentions": 42, "sentiment": 0.38, "domains": ["finance"]},
+        {"entity": "Chip Shortage", "centrality_score": 0.33, "mentions": 38, "sentiment": 0.25, "domains": ["technology"]},
+        {"entity": "Supply Chain", "centrality_score": 0.31, "mentions": 35, "sentiment": 0.42, "domains": ["finance", "technology"]},
+        {"entity": "Regulation", "centrality_score": 0.29, "mentions": 32, "sentiment": 0.35, "domains": ["finance", "technology"]}
+    ]
+    
+    return sample_entities
 
 def plot_sentiment_trends(df):
     """Plot sentiment trends over time"""
@@ -659,8 +733,6 @@ def plot_wordcloud(df, domain=None):
     try:
         from wordcloud import WordCloud
         import matplotlib.pyplot as plt
-        from nltk.corpus import stopwords
-        from nltk.tokenize import word_tokenize
         import nltk
     except ImportError:
         st.warning("Required packages (wordcloud, nltk) not installed. Install with: pip install wordcloud nltk")
@@ -668,15 +740,28 @@ def plot_wordcloud(df, domain=None):
     
     # Ensure NLTK data is downloaded
     try:
-        # Check if the stopwords and punkt tokenizer data exists
-        nltk.data.find('corpora/stopwords')
-        nltk.data.find('tokenizers/punkt')
-    except LookupError:
-        # If not, download them automatically
-        st.info("Downloading required NLTK data files...")
-        nltk.download('stopwords')
-        nltk.download('punkt')
-        st.success("NLTK data downloaded successfully!")
+        # Check if the punkt tokenizer and stopwords data exists
+        nltk.download('punkt', quiet=True)
+        nltk.download('stopwords', quiet=True)
+        from nltk.corpus import stopwords
+        
+        # Try a simple tokenization to test if it works
+        try:
+            nltk.word_tokenize("Test sentence.")
+        except LookupError:
+            # If direct tokenization fails, use a simpler approach
+            st.warning("NLTK tokenization not fully available. Using simple tokenization instead.")
+            def simple_tokenize(text):
+                return text.lower().split()
+            word_tokenize = simple_tokenize
+        else:
+            from nltk.tokenize import word_tokenize
+    except Exception as e:
+        st.error(f"Error setting up NLTK: {str(e)}")
+        st.info("Using simple tokenization as fallback.")
+        def simple_tokenize(text):
+            return text.lower().split()
+        word_tokenize = simple_tokenize
     
     if df.empty:
         st.warning("No text data available for word cloud")
@@ -712,14 +797,35 @@ def plot_wordcloud(df, domain=None):
         st.warning("No text content available for word cloud")
         return
     
-    # Tokenize and remove stopwords
-    stop_words = set(stopwords.words('english'))
+    # Define stopwords - use NLTK if available, otherwise define basic list
+    try:
+        stop_words = set(stopwords.words('english'))
+    except:
+        # Fallback basic stopwords list
+        stop_words = {'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', 'your', 
+                     'yours', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 'she', 
+                     'her', 'hers', 'herself', 'it', 'its', 'itself', 'they', 'them', 'their', 
+                     'theirs', 'themselves', 'what', 'which', 'who', 'whom', 'this', 'that', 
+                     'these', 'those', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 
+                     'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'a', 'an', 
+                     'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until', 'while', 'of', 
+                     'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 'through', 
+                     'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down', 
+                     'in', 'out', 'on', 'off', 'over', 'under', 'again', 'further', 'then', 
+                     'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 
+                     'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 
+                     'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 
+                     't', 'can', 'will', 'just', 'don', 'should', 'now'}
     
     # Add custom stopwords
-    custom_stopwords = ['said', 'also', 'would', 'could', 'one', 'may', 'many', 'new', 'use', 'using', 'used', 'like', 'say', 'says', 'year', 'company']
+    custom_stopwords = ['said', 'also', 'would', 'could', 'one', 'may', 'many', 'new', 
+                       'using', 'used', 'like', 'say', 'says', 'year', 'company', 'today',
+                       'tomorrow', 'reuters', 'ap', 'reported', 'report', 'according']
     stop_words.update(custom_stopwords)
     
-    tokens = word_tokenize(all_text.lower())
+    # Tokenize text - use simple approach for reliability
+    tokens = all_text.lower().split()
+    # Remove stopwords and short words
     filtered_tokens = [word for word in tokens if word.isalpha() and word not in stop_words and len(word) > 2]
     
     if not filtered_tokens:
@@ -1195,14 +1301,15 @@ def main():
                 
                 # Create sample correlation data
                 sample_data = {
-                    'AAPL': [0.72, 0.35, -0.28],
-                    'MSFT': [0.65, 0.43, -0.18],
-                    'GOOGL': [0.58, 0.39, -0.22],
-                    'AMZN': [0.62, 0.41, -0.15],
-                    '^GSPC': [0.51, 0.29, -0.32]
+                    'AAPL': [0.72, 0.35, -0.28, 0.45],
+                    'MSFT': [0.65, 0.43, -0.18, 0.51],
+                    'GOOGL': [0.58, 0.39, -0.22, 0.38],
+                    'AMZN': [0.62, 0.41, -0.15, 0.42],
+                    'TSLA': [0.48, 0.37, -0.34, 0.29],
+                    '^GSPC': [0.51, 0.29, -0.32, 0.37]
                 }
                 
-                correlation_df = pd.DataFrame(sample_data, index=['finance_positive', 'tech_positive', 'negative_overall'])
+                correlation_df = pd.DataFrame(sample_data, index=['finance_positive', 'tech_positive', 'negative_overall', 'entity_mentions'])
             
             # Plot correlation heatmap
             plot_correlation_heatmap(correlation_df)
