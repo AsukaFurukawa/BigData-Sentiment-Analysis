@@ -15,5 +15,38 @@
     "stocks",
     "investing",
     "cryptocurrency"
-  ]
+  ],
+  "market_data": {
+    "alpha_vantage_key": "YOUR_ALPHA_VANTAGE_API_KEY",
+    "update_interval_minutes": 60,
+    "stocks": [
+      "AAPL",
+      "MSFT",
+      "GOOGL",
+      "AMZN",
+      "META",
+      "TSLA",
+      "NVDA",
+      "AMD",
+      "INTC",
+      "IBM"
+    ],
+    "indices": [
+      "^GSPC",
+      "^DJI",
+      "^IXIC",
+      "^RUT"
+    ],
+    "crypto": [
+      "BTC-USD",
+      "ETH-USD",
+      "SOL-USD",
+      "ADA-USD"
+    ],
+    "forex": [
+      "EURUSD=X",
+      "GBPUSD=X",
+      "USDJPY=X"
+    ]
+  }
 }

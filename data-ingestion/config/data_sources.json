@@ -1,0 +1,96 @@
+{
+  "use_kafka": false,
+  "kafka": {
+    "bootstrap_servers": "localhost:29092",
+    "input_topics": [
+      "raw_posts"
+    ],
+    "output_topic": "processed_sentiment"
+  },
+  "sources": {
+    "rss_feeds": {
+      "finance": [
+        {
+          "name": "Yahoo Finance",
+          "url": "https://finance.yahoo.com/news/rssindex"
+        },
+        {
+          "name": "CNBC",
+          "url": "https://www.cnbc.com/id/10000664/device/rss/rss.html"
+        },
+        {
+          "name": "MarketWatch",
+          "url": "http://feeds.marketwatch.com/marketwatch/topstories/"
+        },
+        {
+          "name": "Financial Times",
+          "url": "https://www.ft.com/?format=rss"
+        }
+      ],
+      "technology": [
+        {
+          "name": "TechCrunch",
+          "url": "https://techcrunch.com/feed/"
+        },
+        {
+          "name": "Wired",
+          "url": "https://www.wired.com/feed/rss"
+        },
+        {
+          "name": "The Verge",
+          "url": "https://www.theverge.com/rss/index.xml"
+        },
+        {
+          "name": "ArsTechnica",
+          "url": "https://feeds.arstechnica.com/arstechnica/technology-lab"
+        }
+      ]
+    },
+    "news_api": {
+      "enabled": false,
+      "endpoint": "https://newsapi.org/v2/everything",
+      "api_key": "YOUR_API_KEY_HERE",
+      "queries": {
+        "finance": [
+          "stock market",
+          "investing",
+          "financial news",
+          "economy"
+        ],
+        "technology": [
+          "technology",
+          "AI",
+          "blockchain",
+          "tech industry"
+        ]
+      }
+    },
+    "reddit": {
+      "enabled": true,
+      "subreddits": {
+        "finance": [
+          "investing",
+          "stocks",
+          "wallstreetbets",
+          "finance",
+          "economy"
+        ],
+        "technology": [
+          "technology",
+          "tech",
+          "programming",
+          "MachineLearning",
+          "artificial"
+        ]
+      }
+    },
+    "hackernews": {
+      "enabled": true
+    }
+  },
+  "collection": {
+    "interval_minutes": 60,
+    "max_articles_per_source": 50,
+    "lookback_days": 1
+  }
+}
