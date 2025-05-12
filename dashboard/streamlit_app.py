@@ -5,6 +5,7 @@ import time
 import sqlite3
 import logging
 import subprocess
+import math
 from datetime import datetime, timedelta, timezone
 
 import pandas as pd
@@ -62,17 +63,149 @@ def load_sentiment_data(days=30, domain=None):
         conn.close()
         
         # Convert timestamp - use format='mixed' to handle various ISO formats
-        df['created_at'] = pd.to_datetime(df['created_at'], format='mixed', utc=True)
+        df['created_at'] = pd.to_datetime(df['created_at'], format='mixed', utc=True, errors='coerce')
+        
+        # Handle NaT (Not a Time) values in created_at
+        if df['created_at'].isna().any():
+            # Replace NaT values with a recent timestamp
+            recent_time = datetime.now().replace(tzinfo=timezone.utc) - timedelta(days=1)
+            df.loc[df['created_at'].isna(), 'created_at'] = recent_time
+            st.warning("Some timestamps were invalid and have been replaced with recent dates")
+        
+        # Replace infinity values in score with neutral sentiment (0.5)
+        if 'score' in df.columns:
+            # Check for infinity or NaN values
+            mask = df['score'].isin([float('inf'), float('-inf')]) | df['score'].isna()
+            if mask.any():
+                df.loc[mask, 'score'] = 0.5
+                st.warning("Some sentiment scores were invalid and have been replaced with neutral values")
         
         # Ensure title column exists, add empty if needed
         if 'title' not in df.columns:
             df['title'] = ""
+            
+        # Clean text fields
+        for text_col in ['text', 'title']:
+            if text_col in df.columns:
+                # Replace None and NaN with empty string
+                df[text_col] = df[text_col].fillna("")
+                
+        # Validate numeric columns
+        for col in ['score', 'confidence']:
+            if col in df.columns:
+                # Replace infinity or NaN with reasonable defaults
+                df[col] = df[col].replace([float('inf'), float('-inf')], 0.5)
+                df[col] = df[col].fillna(0.5)
+                
+                # Ensure values are in valid range [0-1]
+                df.loc[df[col] > 1, col] = 1.0
+                df.loc[df[col] < 0, col] = 0.0
         
         return df
     
     except Exception as e:
         st.error(f"Error loading sentiment data: {str(e)}")
-        return pd.DataFrame()
+        
+        # Create sample data if real data loading fails
+        st.info("Creating sample sentiment data for demonstration...")
+        return create_sample_sentiment_data(days, domain)
+
+def create_sample_sentiment_data(days=30, domain=None):
+    """Create sample sentiment data for demonstration"""
+    # Set random seed for reproducibility
+    np.random.seed(42)
+    
+    # Number of records to generate
+    n_records = 200
+    
+    # Generate dates within the specified range
+    end_date = datetime.now().replace(tzinfo=timezone.utc)
+    start_date = end_date - timedelta(days=days)
+    dates = [start_date + timedelta(days=np.random.random() * days) for _ in range(n_records)]
+    
+    # Domains to include
+    available_domains = ["finance", "technology", "finance-tech"]
+    if domain:
+        domains = [domain] * n_records
+    else:
+        domains = np.random.choice(available_domains, n_records)
+    
+    # Sources for each domain
+    finance_sources = ["Reuters", "Bloomberg", "CNBC", "Financial Times", "WSJ"]
+    tech_sources = ["TechCrunch", "Wired", "The Verge", "Ars Technica", "MIT Tech Review"]
+    combined_sources = finance_sources + tech_sources
+    
+    # Generate sources based on domain
+    sources = []
+    for d in domains:
+        if d == "finance":
+            sources.append(np.random.choice(finance_sources))
+        elif d == "technology":
+            sources.append(np.random.choice(tech_sources))
+        else:
+            sources.append(np.random.choice(combined_sources))
+    
+    # Generate sentiment scores with some randomness but domain tendencies
+    sentiment_scores = []
+    sentiment_categories = []
+    
+    for d in domains:
+        if d == "finance":
+            # Finance tends slightly negative
+            score = np.clip(np.random.normal(0.45, 0.15), 0, 1)
+        elif d == "technology":
+            # Tech tends slightly positive
+            score = np.clip(np.random.normal(0.55, 0.15), 0, 1)
+        else:
+            # Mixed is more neutral
+            score = np.clip(np.random.normal(0.5, 0.2), 0, 1)
+        
+        sentiment_scores.append(score)
+        
+        # Categorize
+        if score > 0.6:
+            sentiment_categories.append("positive")
+        elif score < 0.4:
+            sentiment_categories.append("negative")
+        else:
+            sentiment_categories.append("neutral")
+    
+    # Create sample titles and texts
+    titles = [
+        f"{'Bull' if s > 0.5 else 'Bear'} market trends continue for {domains[i].title()} sector" 
+        for i, s in enumerate(sentiment_scores)
+    ]
+    
+    texts = [
+        f"This is sample {sentiment_categories[i]} sentiment content about {domains[i]}. "
+        f"The sentiment score is {sentiment_scores[i]:.2f} based on our analysis."
+        for i in range(n_records)
+    ]
+    
+    # Generate confidence levels
+    confidences = np.random.choice(["high", "medium", "low"], n_records, p=[0.6, 0.3, 0.1])
+    
+    # Create models used
+    models = np.random.choice(["BERT", "FinBERT", "RoBERTa", "GPT"], n_records)
+    
+    # Create sample URLs
+    urls = [f"https://example.com/{d}/{i}" for i, d in enumerate(domains)]
+    
+    # Create DataFrame
+    df = pd.DataFrame({
+        'created_at': dates,
+        'source': sources,
+        'domain': domains,
+        'overall_sentiment': sentiment_categories,
+        'score': sentiment_scores,
+        'confidence': confidences,
+        'model': models,
+        'text': texts,
+        'title': titles,
+        'url': urls
+    })
+    
+    return df
 
 def load_market_data(days=30, symbols=None):
     """Load market data from SQLite database"""
@@ -373,25 +506,38 @@ def plot_entity_network(entities):
     if entities is None:
         # Generate sample entity data for demonstration
         st.info("No entity data available - showing sample visualization for demonstration purposes")
-        
-        # Create sample data
-        sample_entities = [
-            {"entity": "Apple", "centrality_score": 0.85, "mentions": 120, "sentiment": 0.72, "domains": ["technology", "finance"]},
-            {"entity": "Tesla", "centrality_score": 0.76, "mentions": 95, "sentiment": 0.65, "domains": ["technology", "finance"]},
-            {"entity": "Bitcoin", "centrality_score": 0.68, "mentions": 80, "sentiment": 0.45, "domains": ["finance"]},
-            {"entity": "Amazon", "centrality_score": 0.65, "mentions": 75, "sentiment": 0.58, "domains": ["technology", "finance"]},
-            {"entity": "Nvidia", "centrality_score": 0.62, "mentions": 72, "sentiment": 0.78, "domains": ["technology"]},
-            {"entity": "Google", "centrality_score": 0.57, "mentions": 68, "sentiment": 0.62, "domains": ["technology"]},
-            {"entity": "Microsoft", "centrality_score": 0.54, "mentions": 65, "sentiment": 0.67, "domains": ["technology"]},
-            {"entity": "Fed", "centrality_score": 0.48, "mentions": 60, "sentiment": 0.40, "domains": ["finance"]},
-            {"entity": "Inflation", "centrality_score": 0.45, "mentions": 55, "sentiment": 0.35, "domains": ["finance"]},
-            {"entity": "AI", "centrality_score": 0.42, "mentions": 50, "sentiment": 0.72, "domains": ["technology"]}
-        ]
-        
-        entities = sample_entities
+        entities = create_sample_entity_data()
+    
+    # Validate data to remove Infinity values
+    valid_entities = []
+    for entity in entities:
+        # Ensure no infinity values
+        if (isinstance(entity.get("centrality_score", 0), (int, float)) and 
+            isinstance(entity.get("mentions", 0), (int, float)) and 
+            isinstance(entity.get("sentiment", 0.5), (int, float))):
+            
+            # Replace any potential infinity values
+            if math.isinf(entity.get("centrality_score", 0)) or math.isnan(entity.get("centrality_score", 0)):
+                entity["centrality_score"] = 0.5
+            if math.isinf(entity.get("mentions", 0)) or math.isnan(entity.get("mentions", 0)):
+                entity["mentions"] = 50
+            if math.isinf(entity.get("sentiment", 0.5)) or math.isnan(entity.get("sentiment", 0.5)):
+                entity["sentiment"] = 0.5
+                
+            valid_entities.append(entity)
+        else:
+            # Create a valid entity with default values
+            valid_entity = {
+                "entity": entity.get("entity", "Unknown Entity"),
+                "centrality_score": 0.5,
+                "mentions": 50,
+                "sentiment": 0.5,
+                "domains": entity.get("domains", ["unknown"])
+            }
+            valid_entities.append(valid_entity)
     
     # Get top entities 
-    top_entities = entities[:15]  # Limit to top 15
+    top_entities = valid_entities[:15]  # Limit to top 15
     
     # Extract data
     entity_names = [item['entity'] for item in top_entities]
