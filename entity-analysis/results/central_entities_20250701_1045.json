@@ -1,0 +1,202 @@
+[
+  {
+    "entity": "Bitcoin",
+    "centrality_score": 0.5679339615646186,
+    "mentions": 366,
+    "sentiment": 0.15027322404371585,
+    "domains": [
+      "finance",
+      "finance-tech"
+    ]
+  },
+  {
+    "entity": "AI",
+    "centrality_score": 0.25937181240508056,
+    "mentions": 220,
+    "sentiment": 0.45454545454545453,
+    "domains": [
+      "finance-tech",
+      "technology"
+    ]
+  },
+  {
+    "entity": "5G",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 183,
+    "sentiment": 0.5409836065573771,
+    "domains": [
+      "finance-tech",
+      "technology"
+    ]
+  },
+  {
+    "entity": "virtual reality",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 186,
+    "sentiment": 0.5376344086021505,
+    "domains": [
+      "finance-tech",
+      "technology"
+    ]
+  },
+  {
+    "entity": "Microsoft",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 132,
+    "sentiment": 0.5378787878787878,
+    "domains": [
+      "finance",
+      "finance-tech"
+    ]
+  },
+  {
+    "entity": "bonds",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 146,
+    "sentiment": 0.4589041095890411,
+    "domains": [
+      "finance",
+      "finance-tech"
+    ]
+  },
+  {
+    "entity": "quantum computing",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 193,
+    "sentiment": 0.47150259067357514,
+    "domains": [
+      "finance-tech",
+      "technology"
+    ]
+  },
+  {
+    "entity": "cloud computing",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 204,
+    "sentiment": 0.5098039215686274,
+    "domains": [
+      "finance-tech",
+      "technology"
+    ]
+  },
+  {
+    "entity": "IoT",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 191,
+    "sentiment": 0.5497382198952879,
+    "domains": [
+      "finance-tech",
+      "technology"
+    ]
+  },
+  {
+    "entity": "S&P 500",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 139,
+    "sentiment": 0.5035971223021583,
+    "domains": [
+      "finance",
+      "finance-tech"
+    ]
+  },
+  {
+    "entity": "NASDAQ",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 132,
+    "sentiment": 0.5151515151515151,
+    "domains": [
+      "finance",
+      "finance-tech"
+    ]
+  },
+  {
+    "entity": "Tesla",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 136,
+    "sentiment": 0.6029411764705882,
+    "domains": [
+      "finance",
+      "finance-tech"
+    ]
+  },
+  {
+    "entity": "big data",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 213,
+    "sentiment": 0.4788732394366197,
+    "domains": [
+      "finance-tech",
+      "technology"
+    ]
+  },
+  {
+    "entity": "blockchain",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 196,
+    "sentiment": 0.5408163265306123,
+    "domains": [
+      "finance-tech",
+      "technology"
+    ]
+  },
+  {
+    "entity": "Apple",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 140,
+    "sentiment": 0.5071428571428571,
+    "domains": [
+      "finance",
+      "finance-tech"
+    ]
+  },
+  {
+    "entity": "Federal Reserve",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 163,
+    "sentiment": 0.5337423312883436,
+    "domains": [
+      "finance",
+      "finance-tech"
+    ]
+  },
+  {
+    "entity": "inflation",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 145,
+    "sentiment": 0.503448275862069,
+    "domains": [
+      "finance",
+      "finance-tech"
+    ]
+  },
+  {
+    "entity": "interest rates",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 124,
+    "sentiment": 0.5,
+    "domains": [
+      "finance",
+      "finance-tech"
+    ]
+  },
+  {
+    "entity": "ChatGPT",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 193,
+    "sentiment": 0.616580310880829,
+    "domains": [
+      "finance-tech",
+      "technology"
+    ]
+  },
+  {
+    "entity": "neural networks",
+    "centrality_score": 0.24422604422604427,
+    "mentions": 188,
+    "sentiment": 0.5851063829787234,
+    "domains": [
+      "finance-tech",
+      "technology"
+    ]
+  }
+]

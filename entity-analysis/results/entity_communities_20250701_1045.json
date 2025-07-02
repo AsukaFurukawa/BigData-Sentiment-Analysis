@@ -1,0 +1,187 @@
+[
+  {
+    "id": 0,
+    "size": 28,
+    "entities": [
+      "5G",
+      "virtual reality",
+      "Microsoft",
+      "bonds",
+      "quantum computing",
+      "cloud computing",
+      "IoT",
+      "S&P 500",
+      "NASDAQ",
+      "Tesla",
+      "big data",
+      "AI",
+      "blockchain",
+      "Apple",
+      "Federal Reserve",
+      "inflation",
+      "interest rates",
+      "ChatGPT",
+      "neural networks",
+      "cybersecurity",
+      "Google",
+      "stocks",
+      "machine learning",
+      "GDP",
+      "Dow Jones",
+      "Amazon",
+      "earnings",
+      "tech"
+    ],
+    "avg_sentiment": 0.5267560057694888,
+    "top_entities": [
+      "AI",
+      "big data",
+      "cybersecurity",
+      "cloud computing",
+      "blockchain"
+    ]
+  },
+  {
+    "id": 1,
+    "size": 26,
+    "entities": [
+      "Bitcoin",
+      "JPM",
+      "Ethereum",
+      "SMH",
+      "QQQ",
+      "DAO",
+      "IWM",
+      "Layer 2",
+      "XOM",
+      "CVX",
+      "ICLN",
+      "TSLA",
+      "EEM",
+      "Solana",
+      "REIT",
+      "Aave",
+      "Smart contracts",
+      "Cardano",
+      "BTC",
+      "Uniswap",
+      "Web3",
+      "Staking",
+      "Polygon",
+      "NFT",
+      "Chainlink",
+      "DeFi"
+    ],
+    "avg_sentiment": 0.020538179638588668,
+    "top_entities": [
+      "Bitcoin",
+      "TSLA",
+      "EEM",
+      "IWM",
+      "QQQ"
+    ]
+  },
+  {
+    "id": 2,
+    "size": 7,
+    "entities": [
+      "AAPL",
+      "Meta",
+      "Metaverse",
+      "NVDA",
+      "MSFT",
+      "GOOGL",
+      "ATVI"
+    ],
+    "avg_sentiment": 0.01116247572037578,
+    "top_entities": [
+      "GOOGL",
+      "MSFT",
+      "AAPL",
+      "NVDA",
+      "Meta"
+    ]
+  },
+  {
+    "id": 3,
+    "size": 3,
+    "entities": [
+      "CRM",
+      "NOW",
+      "SNOW"
+    ],
+    "avg_sentiment": -0.0273972602739726,
+    "top_entities": [
+      "CRM",
+      "NOW",
+      "SNOW"
+    ]
+  },
+  {
+    "id": 4,
+    "size": 3,
+    "entities": [
+      "CRWD",
+      "ZS",
+      "PANW"
+    ],
+    "avg_sentiment": 0.06122448979591836,
+    "top_entities": [
+      "CRWD",
+      "ZS",
+      "PANW"
+    ]
+  },
+  {
+    "id": 5,
+    "size": 2,
+    "entities": [
+      "NFLX",
+      "DIS"
+    ],
+    "avg_sentiment": -0.04964539007092199,
+    "top_entities": [
+      "NFLX",
+      "DIS"
+    ]
+  },
+  {
+    "id": 6,
+    "size": 2,
+    "entities": [
+      "MRNA",
+      "BNTX"
+    ],
+    "avg_sentiment": 0.008928571428571428,
+    "top_entities": [
+      "MRNA",
+      "BNTX"
+    ]
+  },
+  {
+    "id": 7,
+    "size": 2,
+    "entities": [
+      "DLR",
+      "PLD"
+    ],
+    "avg_sentiment": 0.02040816326530612,
+    "top_entities": [
+      "DLR",
+      "PLD"
+    ]
+  },
+  {
+    "id": 8,
+    "size": 2,
+    "entities": [
+      "crypto",
+      "bitcoin"
+    ],
+    "avg_sentiment": 0.0,
+    "top_entities": [
+      "crypto",
+      "bitcoin"
+    ]
+  }
+]

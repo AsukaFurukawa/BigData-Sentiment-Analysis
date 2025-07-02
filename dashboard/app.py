@@ -42,9 +42,9 @@ def load_sentiment_data(days=7):
     
     query = f"""
     SELECT 
-        s.id, s.source, s.created_at, s.text, s.domain, s.overall_sentiment,
-        f.sentiment as finance_sentiment, f.finance_score, f.entities as finance_entities,
-        t.sentiment as tech_sentiment, t.tech_score, t.entities as tech_entities, t.categories as tech_categories
+        s.id, s.source, s.created_at, s.text, s.domain, s.overall_sentiment, s.score,
+        f.entities as finance_entities,
+        t.entities as tech_entities, t.categories as tech_categories
     FROM sentiment_results s
     LEFT JOIN finance_analysis f ON s.id = f.id
     LEFT JOIN tech_analysis t ON s.id = t.id
@@ -104,8 +104,8 @@ domain_filter = st.sidebar.multiselect(
 # Source filter
 source_filter = st.sidebar.multiselect(
     "Source",
-    ["twitter", "reddit"],
-    default=["twitter", "reddit"]
+    ["twitter", "reddit", "news"],
+    default=["twitter", "reddit", "news"]
 )
 
 # Sentiment filter
@@ -119,19 +119,31 @@ sentiment_filter = st.sidebar.multiselect(
 try:
     df = load_sentiment_data(days)
     
+    # If no data, try loading all data without date filter
+    if df.empty:
+        st.warning("No recent data found, loading all available data...")
+        conn = get_connection()
+        query = "SELECT id, source, created_at, text, domain, overall_sentiment, score FROM sentiment_results ORDER BY created_at DESC LIMIT 1000"
+        df = pd.read_sql_query(query, conn)
+        df['created_at'] = pd.to_datetime(df['created_at'])
+        df['date'] = df['created_at'].dt.date
+        df['hour'] = df['created_at'].dt.hour
+        conn.close()
+    
     # Apply filters
-    if domain_filter:
+    if domain_filter and not df.empty:
         df = df[df['domain'].isin(domain_filter)]
     
-    if source_filter:
+    if source_filter and not df.empty:
         df = df[df['source'].isin(source_filter)]
     
-    if sentiment_filter:
+    if sentiment_filter and not df.empty:
         df = df[df['overall_sentiment'].isin(sentiment_filter)]
     
     # Check if we have data after filtering
     if df.empty:
-        st.warning("No data available for the selected filters.")
+        st.error("No data available. Database might be empty.")
+        st.info("Try running: python quick_data_populate.py")
         st.stop()
     
     # Main dashboard
@@ -194,7 +206,7 @@ try:
         # Finance sentiment
         finance_df = df[df['domain'].isin(['finance', 'finance-tech'])]
         if not finance_df.empty:
-            finance_sentiment_counts = finance_df['finance_sentiment'].value_counts()
+            finance_sentiment_counts = finance_df['overall_sentiment'].value_counts()
             
             fig = px.pie(
                 values=finance_sentiment_counts.values,
@@ -211,7 +223,7 @@ try:
         # Technology sentiment
         tech_df = df[df['domain'].isin(['technology', 'tech-finance'])]
         if not tech_df.empty:
-            tech_sentiment_counts = tech_df['tech_sentiment'].value_counts()
+            tech_sentiment_counts = tech_df['overall_sentiment'].value_counts()
             
             fig = px.pie(
                 values=tech_sentiment_counts.values,

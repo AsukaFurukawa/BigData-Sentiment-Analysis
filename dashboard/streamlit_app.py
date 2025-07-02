@@ -40,20 +40,23 @@ def load_sentiment_data(days=30, domain=None):
     """Load sentiment data from SQLite database"""
     if not os.path.exists(SENTIMENT_DB):
         st.error(f"Sentiment database not found at {SENTIMENT_DB}")
-        return pd.DataFrame()
+        st.info("Creating sample sentiment data for demonstration...")
+        return create_sample_sentiment_data(days, domain)
     
     try:
         # Connect to database
         conn = sqlite3.connect(SENTIMENT_DB)
         
-        # Build query
-        cutoff_date = (datetime.now().replace(tzinfo=timezone.utc) - timedelta(days=days)).strftime('%Y-%m-%d')
+        # Build query with proper date handling
+        # Format date consistently for SQLite comparison
+        cutoff_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
         domain_filter = f"AND domain = '{domain}'" if domain else ""
         
+        # Use date function in SQLite to ensure proper string comparison
         query = f"""
         SELECT created_at, source, domain, overall_sentiment, score, confidence, model, text, title, url
         FROM sentiment_results
-        WHERE created_at > '{cutoff_date}'
+        WHERE strftime('%s', created_at) > strftime('%s', '{cutoff_date}')
         {domain_filter}
         ORDER BY created_at
         """
@@ -62,15 +65,21 @@ def load_sentiment_data(days=30, domain=None):
         df = pd.read_sql_query(query, conn)
         conn.close()
         
-        # Convert timestamp - use format='mixed' to handle various ISO formats
-        df['created_at'] = pd.to_datetime(df['created_at'], format='mixed', utc=True, errors='coerce')
+        if df.empty:
+            st.warning("No data found in the database. Generating sample data instead.")
+            return create_sample_sentiment_data(days, domain)
+        
+        # Convert timestamp - make sure all datetimes are timezone naive for consistency
+        df['created_at'] = pd.to_datetime(df['created_at'], errors='coerce').dt.tz_localize(None)
         
         # Handle NaT (Not a Time) values in created_at
         if df['created_at'].isna().any():
             # Replace NaT values with a recent timestamp
-            recent_time = datetime.now().replace(tzinfo=timezone.utc) - timedelta(days=1)
+            recent_time = datetime.now() - timedelta(days=1)
             df.loc[df['created_at'].isna(), 'created_at'] = recent_time
-            st.warning("Some timestamps were invalid and have been replaced with recent dates")
+            # Only show this warning in debug mode or if a large percentage has issues
+            if df['created_at'].isna().mean() > 0.1:  # Only show if >10% are invalid
+                st.warning("Some timestamps were invalid and have been replaced with recent dates")
         
         # Replace infinity values in score with neutral sentiment (0.5)
         if 'score' in df.columns:
@@ -78,7 +87,9 @@ def load_sentiment_data(days=30, domain=None):
             mask = df['score'].isin([float('inf'), float('-inf')]) | df['score'].isna()
             if mask.any():
                 df.loc[mask, 'score'] = 0.5
-                st.warning("Some sentiment scores were invalid and have been replaced with neutral values")
+                # Only show this warning if a significant number of scores are invalid
+                if mask.mean() > 0.1:  # Only show if >10% are invalid
+                    st.warning("Some sentiment scores were invalid and have been replaced with neutral values")
         
         # Ensure title column exists, add empty if needed
         if 'title' not in df.columns:
@@ -104,7 +115,13 @@ def load_sentiment_data(days=30, domain=None):
         return df
     
     except Exception as e:
-        st.error(f"Error loading sentiment data: {str(e)}")
+        # Log the error but don't always display it to users
+        print(f"Error loading sentiment data: {str(e)}")
+        
+        # Check if we've already shown an error for this
+        if not hasattr(st.session_state, 'data_error_shown'):
+            st.error(f"Error loading sentiment data: {str(e)}")
+            st.session_state.data_error_shown = True
         
         # Create sample data if real data loading fails
         st.info("Creating sample sentiment data for demonstration...")
@@ -119,7 +136,7 @@ def create_sample_sentiment_data(days=30, domain=None):
     n_records = 200
     
     # Generate dates within the specified range
-    end_date = datetime.now().replace(tzinfo=timezone.utc)
+    end_date = datetime.now()
     start_date = end_date - timedelta(days=days)
     dates = [start_date + timedelta(days=np.random.random() * days) for _ in range(n_records)]
     
@@ -218,13 +235,13 @@ def load_market_data(days=30, symbols=None):
         conn = sqlite3.connect(MARKET_DB)
         
         # Build query
-        cutoff_date = (datetime.now().replace(tzinfo=timezone.utc) - timedelta(days=days)).strftime('%Y-%m-%d')
+        cutoff_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
         symbol_filter = f"AND symbol IN ({', '.join(['?']*len(symbols))})" if symbols else ""
         
         query = f"""
         SELECT timestamp, symbol, close
         FROM market_data
-        WHERE timestamp > '{cutoff_date}'
+        WHERE strftime('%s', timestamp) > strftime('%s', '{cutoff_date}')
         {symbol_filter}
         ORDER BY timestamp
         """
@@ -234,8 +251,8 @@ def load_market_data(days=30, symbols=None):
         df = pd.read_sql_query(query, conn, params=params)
         conn.close()
         
-        # Convert timestamp
-        df['timestamp'] = pd.to_datetime(df['timestamp'], format='mixed', utc=True)
+        # Convert timestamp - ensure timezone naive
+        df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce').dt.tz_localize(None)
         
         return df
     
@@ -416,23 +433,37 @@ def plot_sentiment_trends(df):
         """)
         
         # Calculate recent trend
-        recent_hours = 24
-        recent_data = df_plot[df_plot['created_at'] > (datetime.now().replace(tzinfo=timezone.utc) - timedelta(hours=recent_hours))]
-        
-        if not recent_data.empty:
-            recent_avg = recent_data['score'].mean()
-            prev_avg = df_plot[
-                (df_plot['created_at'] <= (datetime.now().replace(tzinfo=timezone.utc) - timedelta(hours=recent_hours))) & 
-                (df_plot['created_at'] > (datetime.now().replace(tzinfo=timezone.utc) - timedelta(hours=recent_hours*2)))
-            ]['score'].mean()
+        try:
+            recent_hours = 24
+            # Ensure datetime objects are compatible for comparison
+            current_time = datetime.now()
+            cutoff_time = current_time - timedelta(hours=recent_hours)
             
-            if not pd.isna(prev_avg) and not pd.isna(recent_avg):
-                change = recent_avg - prev_avg
-                if abs(change) > 0.05:
-                    direction = "positive" if change > 0 else "negative"
-                    st.markdown(f"**Recent trend:** Sentiment has shifted {direction} by {abs(change):.2f} points in the last {recent_hours} hours.")
-                else:
-                    st.markdown("**Recent trend:** Sentiment has remained stable in the recent period.")
+            # Convert both to naive datetime objects for comparison
+            recent_data = df_plot[df_plot['created_at'] > cutoff_time]
+            
+            if not recent_data.empty:
+                recent_avg = recent_data['score'].mean()
+                
+                # Calculate previous period average using the same approach
+                prev_cutoff = current_time - timedelta(hours=recent_hours*2)
+                prev_data = df_plot[
+                    (df_plot['created_at'] <= cutoff_time) & 
+                    (df_plot['created_at'] > prev_cutoff)
+                ]
+                
+                prev_avg = prev_data['score'].mean() if not prev_data.empty else None
+                
+                if not pd.isna(prev_avg) and not pd.isna(recent_avg) and prev_avg is not None:
+                    change = recent_avg - prev_avg
+                    if abs(change) > 0.05:
+                        direction = "positive" if change > 0 else "negative"
+                        st.markdown(f"**Recent trend:** Sentiment has shifted {direction} by {abs(change):.2f} points in the last {recent_hours} hours.")
+                    else:
+                        st.markdown("**Recent trend:** Sentiment has remained stable in the recent period.")
+        except Exception as e:
+            print(f"Error calculating trend: {str(e)}")
+            st.markdown("**Recent trend:** Unable to calculate due to data issues.")
 
 def plot_domain_distribution(df):
     """Plot distribution of domains"""
@@ -1074,27 +1105,35 @@ def main():
             with col1:
                 # Overall sentiment trend
                 trend_days = min(7, days)
-                recent_df = sentiment_df[sentiment_df['created_at'] > (datetime.now().replace(tzinfo=timezone.utc) - timedelta(days=trend_days))]
-                if not recent_df.empty:
-                    daily_scores = recent_df.set_index('created_at').resample('D')['score'].mean()
+                try:
+                    # Ensure datetimes are compared properly
+                    recent_df = sentiment_df[sentiment_df['created_at'] > (datetime.now() - timedelta(days=trend_days))]
                     
-                    if len(daily_scores) >= 2:
-                        trend = daily_scores.iloc[-1] - daily_scores.iloc[0]
-                        trend_icon = "📈" if trend > 0.05 else ("📉" if trend < -0.05 else "➡️")
+                    if not recent_df.empty:
+                        daily_scores = recent_df.set_index('created_at').resample('D')['score'].mean()
                         
-                        # Format nicely
-                        st.markdown(f"### {trend_icon} Sentiment Trend")
-                        direction = "Up" if trend > 0 else ("Down" if trend < 0 else "Stable")
-                        st.markdown(f"**{direction}** {abs(trend):.2f} over past {trend_days} days")
-                        
-                        # Show small sparkline
-                        st.line_chart(daily_scores, height=100)
+                        if len(daily_scores) >= 2:
+                            trend = daily_scores.iloc[-1] - daily_scores.iloc[0]
+                            trend_icon = "📈" if trend > 0.05 else ("📉" if trend < -0.05 else "➡️")
+                            
+                            # Format nicely
+                            st.markdown(f"### {trend_icon} Sentiment Trend")
+                            direction = "Up" if trend > 0 else ("Down" if trend < 0 else "Stable")
+                            st.markdown(f"**{direction}** {abs(trend):.2f} over past {trend_days} days")
+                            
+                            # Show small sparkline
+                            st.line_chart(daily_scores, height=100)
+                        else:
+                            st.markdown("### ➡️ Sentiment Trend")
+                            st.markdown("Insufficient data for trend")
                     else:
                         st.markdown("### ➡️ Sentiment Trend")
-                        st.markdown("Insufficient data for trend")
-                else:
+                        st.markdown("No recent data")
+                except Exception as e:
+                    # Fall back to simple display if there's an error
+                    print(f"Error calculating sentiment trend: {str(e)}")
                     st.markdown("### ➡️ Sentiment Trend")
-                    st.markdown("No recent data")
+                    st.markdown("Unable to calculate trend")
             
             with col2:
                 # Source diversity
@@ -1133,19 +1172,21 @@ def main():
                 if 'positive' in polarity and 'negative' in polarity:
                     signal = (polarity.get('positive', 0) - polarity.get('negative', 0)) * 100
                     
+                    # Display signal with proper formatting
                     st.markdown(f"### 🎯 Market Signal")
+                    signal_display = f"+{signal:.1f}%" if signal > 0 else f"{signal:.1f}%"
                     
                     # Categorize the signal
                     if signal > 30:
-                        st.markdown(f"**Strong Bullish** (+{signal:.1f}%)")
+                        st.markdown(f"**Strong Bullish** ({signal_display})")
                     elif signal > 10:
-                        st.markdown(f"**Moderately Bullish** (+{signal:.1f}%)")
+                        st.markdown(f"**Moderately Bullish** ({signal_display})")
                     elif signal > -10:
-                        st.markdown(f"**Neutral** ({signal:.1f}%)")
+                        st.markdown(f"**Neutral** ({signal_display})")
                     elif signal > -30:
-                        st.markdown(f"**Moderately Bearish** ({signal:.1f}%)")
+                        st.markdown(f"**Moderately Bearish** ({signal_display})")
                     else:
-                        st.markdown(f"**Strong Bearish** ({signal:.1f}%)")
+                        st.markdown(f"**Strong Bearish** ({signal_display})")
                     
                     # Show gauge
                     fig = go.Figure(go.Indicator(
@@ -1714,7 +1755,7 @@ def main():
                     days2 = period_options[period2]
                 
                 # Calculate date ranges
-                end_date = datetime.now().replace(tzinfo=timezone.utc)
+                end_date = datetime.now()
                 
                 period1_start = end_date - timedelta(days=days1)
                 period1_label = f"{period1} ({days1} days)" if period1 != "Custom" else f"Custom ({days1} days)"
@@ -1722,143 +1763,152 @@ def main():
                 period2_start = end_date - timedelta(days=days2)
                 period2_label = f"{period2} ({days2} days)" if period2 != "Custom" else f"Custom ({days2} days)"
                 
-                # Filter data for each period
-                period1_data = sentiment_df[sentiment_df['created_at'] >= period1_start]
-                period2_data = sentiment_df[sentiment_df['created_at'] >= period2_start]
-                
-                # Calculate daily sentiment for each period
-                # For period 1, we need to align the dates for comparison
-                period1_data['days_ago'] = (end_date - period1_data['created_at']).dt.days
-                period1_daily = period1_data.groupby('days_ago')['score'].mean().reset_index()
-                period1_daily = period1_daily[period1_daily['days_ago'] < days1]
-                period1_daily['period'] = period1_label
-                
-                # For period 2
-                period2_data['days_ago'] = (end_date - period2_data['created_at']).dt.days
-                period2_daily = period2_data.groupby('days_ago')['score'].mean().reset_index()
-                period2_daily = period2_daily[period2_daily['days_ago'] < days2]
-                period2_daily['period'] = period2_label
-                
-                # Compare periods if data exists
-                if not period1_daily.empty and not period2_daily.empty:
-                    # Create comparison chart
+                # Filter data for each period - handle possible errors
+                try:
+                    # Make sure timestamps in DataFrame are timezone naive
+                    if not sentiment_df.empty and 'created_at' in sentiment_df.columns:
+                        # Filter data for each period
+                        period1_data = sentiment_df[sentiment_df['created_at'] >= period1_start]
+                        period2_data = sentiment_df[sentiment_df['created_at'] >= period2_start]
                     
-                    # Option to normalize time axis
-                    normalize_time = st.checkbox("Normalize time axis (align endpoints)", value=True)
-                    
-                    if normalize_time:
-                        # Normalize the days_ago to percentage of period
-                        period1_daily['normalized_time'] = period1_daily['days_ago'] / max(period1_daily['days_ago']) * 100
-                        period2_daily['normalized_time'] = period2_daily['days_ago'] / max(period2_daily['days_ago']) * 100
+                        # Calculate daily sentiment for each period
+                        # For period 1, we need to align the dates for comparison
+                        period1_data['days_ago'] = (end_date - period1_data['created_at']).dt.days
+                        period1_daily = period1_data.groupby('days_ago')['score'].mean().reset_index()
+                        period1_daily = period1_daily[period1_daily['days_ago'] < days1]
+                        period1_daily['period'] = period1_label
                         
-                        # Combine data
-                        plot_df = pd.concat([period1_daily, period2_daily])
+                        # For period 2
+                        period2_data['days_ago'] = (end_date - period2_data['created_at']).dt.days
+                        period2_daily = period2_data.groupby('days_ago')['score'].mean().reset_index()
+                        period2_daily = period2_daily[period2_daily['days_ago'] < days2]
+                        period2_daily['period'] = period2_label
                         
-                        # Create plot
-                        fig = px.line(
-                            plot_df, 
-                            x='normalized_time', 
-                            y='score', 
-                            color='period',
-                            title='Sentiment Comparison by Time Period (Normalized)',
-                            labels={
-                                'normalized_time': '% of Period (0% = most recent)',
-                                'score': 'Sentiment Score',
-                                'period': 'Time Period'
-                            }
-                        )
-                        
-                        # Improve layout - reverse x-axis so most recent is on right
-                        fig.update_layout(
-                            height=500,
-                            xaxis=dict(title='% of Period (0% = most recent)', autorange="reversed"),
-                            yaxis=dict(title='Sentiment Score', range=[0, 1])
-                        )
+                        # Compare periods if data exists
+                        if not period1_daily.empty and not period2_daily.empty:
+                            # Create comparison chart
+                            
+                            # Option to normalize time axis
+                            normalize_time = st.checkbox("Normalize time axis (align endpoints)", value=True)
+                            
+                            if normalize_time:
+                                # Normalize the days_ago to percentage of period
+                                period1_daily['normalized_time'] = period1_daily['days_ago'] / max(period1_daily['days_ago']) * 100
+                                period2_daily['normalized_time'] = period2_daily['days_ago'] / max(period2_daily['days_ago']) * 100
+                                
+                                # Combine data
+                                plot_df = pd.concat([period1_daily, period2_daily])
+                                
+                                # Create plot
+                                fig = px.line(
+                                    plot_df, 
+                                    x='normalized_time', 
+                                    y='score', 
+                                    color='period',
+                                    title='Sentiment Comparison by Time Period (Normalized)',
+                                    labels={
+                                        'normalized_time': '% of Period (0% = most recent)',
+                                        'score': 'Sentiment Score',
+                                        'period': 'Time Period'
+                                    }
+                                )
+                                
+                                # Improve layout - reverse x-axis so most recent is on right
+                                fig.update_layout(
+                                    height=500,
+                                    xaxis=dict(title='% of Period (0% = most recent)', autorange="reversed"),
+                                    yaxis=dict(title='Sentiment Score', range=[0, 1])
+                                )
+                            else:
+                                # Just use days_ago directly
+                                plot_df = pd.concat([period1_daily, period2_daily])
+                                
+                                # Create plot
+                                fig = px.line(
+                                    plot_df, 
+                                    x='days_ago', 
+                                    y='score', 
+                                    color='period',
+                                    title='Sentiment Comparison by Time Period',
+                                    labels={
+                                        'days_ago': 'Days Ago',
+                                        'score': 'Sentiment Score',
+                                        'period': 'Time Period'
+                                    }
+                                )
+                                
+                                # Improve layout - reverse x-axis so most recent is on right
+                                fig.update_layout(
+                                    height=500,
+                                    xaxis=dict(title='Days Ago', autorange="reversed"),
+                                    yaxis=dict(title='Sentiment Score', range=[0, 1])
+                                )
+                            
+                            # Add a reference line for neutral sentiment
+                            fig.add_hline(y=0.5, line_dash="dash", line_color="gray", annotation_text="Neutral")
+                            
+                            st.plotly_chart(fig, use_container_width=True)
+                            
+                            # Add explanation
+                            with st.expander("📊 Understanding Time Period Comparison", expanded=True):
+                                st.markdown("""
+                                **What this shows:** This chart compares sentiment patterns across different time periods.
+                                
+                                **How to interpret:**
+                                - **Line patterns**: Similar patterns indicate consistent sentiment behavior
+                                - **Divergence points**: Key moments where sentiment patterns changed
+                                - **Overall level**: Whether sentiment is generally more positive/negative in one period
+                                
+                                **Normalized view explanation:**
+                                When normalized, the time periods are stretched/compressed to align the endpoints (0% = most recent data point, 100% = oldest in the period). This helps compare the pattern regardless of the different period lengths.
+                                
+                                **Actionable insights:**
+                                - Pattern similarity can suggest cyclical market behavior
+                                - Current sentiment trajectory can be compared to historical patterns
+                                - Extreme differences between periods may indicate changing market regimes
+                                """)
+                            
+                            # Calculate summary statistics
+                            st.subheader("Period Comparison Statistics")
+                            
+                            period1_avg = period1_data['score'].mean()
+                            period2_avg = period2_data['score'].mean()
+                            
+                            period1_pos_pct = (period1_data['overall_sentiment'] == 'positive').mean() * 100
+                            period2_pos_pct = (period2_data['overall_sentiment'] == 'positive').mean() * 100
+                            
+                            period1_neg_pct = (period1_data['overall_sentiment'] == 'negative').mean() * 100
+                            period2_neg_pct = (period2_data['overall_sentiment'] == 'negative').mean() * 100
+                            
+                            period1_volatility = period1_data['score'].std()
+                            period2_volatility = period2_data['score'].std()
+                            
+                            # Create comparison metrics
+                            col1, col2, col3 = st.columns(3)
+                            
+                            with col1:
+                                st.metric("Average Sentiment", f"{period1_avg:.2f}", f"{period1_avg - period2_avg:+.2f} vs {period2_label}")
+                                st.metric("Positive Percentage", f"{period1_pos_pct:.1f}%", f"{period1_pos_pct - period2_pos_pct:+.1f}% vs {period2_label}")
+                            
+                            with col2:
+                                st.metric("Data Points", f"{len(period1_data)}", f"{len(period1_data) - len(period2_data):+d} vs {period2_label}")
+                                st.metric("Negative Percentage", f"{period1_neg_pct:.1f}%", f"{period1_neg_pct - period2_neg_pct:+.1f}% vs {period2_label}")
+                            
+                            with col3:
+                                st.metric("Sentiment Volatility", f"{period1_volatility:.3f}", f"{period1_volatility - period2_volatility:+.3f} vs {period2_label}")
+                                
+                                # Calculate trend (slope of best fit line)
+                                period1_slope = np.polyfit(period1_daily['days_ago'], period1_daily['score'], 1)[0] * -100  # Negate because days_ago is reversed
+                                period2_slope = np.polyfit(period2_daily['days_ago'], period2_daily['score'], 1)[0] * -100  # Multiply by 100 for readability
+                                
+                                st.metric("Sentiment Trend", f"{period1_slope:.2f}", f"{period1_slope - period2_slope:+.2f} vs {period2_label}")
+                        else:
+                            st.warning("Insufficient data for one or both time periods. Try selecting longer periods.")
                     else:
-                        # Just use days_ago directly
-                        plot_df = pd.concat([period1_daily, period2_daily])
-                        
-                        # Create plot
-                        fig = px.line(
-                            plot_df, 
-                            x='days_ago', 
-                            y='score', 
-                            color='period',
-                            title='Sentiment Comparison by Time Period',
-                            labels={
-                                'days_ago': 'Days Ago',
-                                'score': 'Sentiment Score',
-                                'period': 'Time Period'
-                            }
-                        )
-                        
-                        # Improve layout - reverse x-axis so most recent is on right
-                        fig.update_layout(
-                            height=500,
-                            xaxis=dict(title='Days Ago', autorange="reversed"),
-                            yaxis=dict(title='Sentiment Score', range=[0, 1])
-                        )
-                    
-                    # Add a reference line for neutral sentiment
-                    fig.add_hline(y=0.5, line_dash="dash", line_color="gray", annotation_text="Neutral")
-                    
-                    st.plotly_chart(fig, use_container_width=True)
-                    
-                    # Add explanation
-                    with st.expander("📊 Understanding Time Period Comparison", expanded=True):
-                        st.markdown("""
-                        **What this shows:** This chart compares sentiment patterns across different time periods.
-                        
-                        **How to interpret:**
-                        - **Line patterns**: Similar patterns indicate consistent sentiment behavior
-                        - **Divergence points**: Key moments where sentiment patterns changed
-                        - **Overall level**: Whether sentiment is generally more positive/negative in one period
-                        
-                        **Normalized view explanation:**
-                        When normalized, the time periods are stretched/compressed to align the endpoints (0% = most recent data point, 100% = oldest in the period). This helps compare the pattern regardless of the different period lengths.
-                        
-                        **Actionable insights:**
-                        - Pattern similarity can suggest cyclical market behavior
-                        - Current sentiment trajectory can be compared to historical patterns
-                        - Extreme differences between periods may indicate changing market regimes
-                        """)
-                    
-                    # Calculate summary statistics
-                    st.subheader("Period Comparison Statistics")
-                    
-                    period1_avg = period1_data['score'].mean()
-                    period2_avg = period2_data['score'].mean()
-                    
-                    period1_pos_pct = (period1_data['overall_sentiment'] == 'positive').mean() * 100
-                    period2_pos_pct = (period2_data['overall_sentiment'] == 'positive').mean() * 100
-                    
-                    period1_neg_pct = (period1_data['overall_sentiment'] == 'negative').mean() * 100
-                    period2_neg_pct = (period2_data['overall_sentiment'] == 'negative').mean() * 100
-                    
-                    period1_volatility = period1_data['score'].std()
-                    period2_volatility = period2_data['score'].std()
-                    
-                    # Create comparison metrics
-                    col1, col2, col3 = st.columns(3)
-                    
-                    with col1:
-                        st.metric("Average Sentiment", f"{period1_avg:.2f}", f"{period1_avg - period2_avg:+.2f} vs {period2_label}")
-                        st.metric("Positive Percentage", f"{period1_pos_pct:.1f}%", f"{period1_pos_pct - period2_pos_pct:+.1f}% vs {period2_label}")
-                    
-                    with col2:
-                        st.metric("Data Points", f"{len(period1_data)}", f"{len(period1_data) - len(period2_data):+d} vs {period2_label}")
-                        st.metric("Negative Percentage", f"{period1_neg_pct:.1f}%", f"{period1_neg_pct - period2_neg_pct:+.1f}% vs {period2_label}")
-                    
-                    with col3:
-                        st.metric("Sentiment Volatility", f"{period1_volatility:.3f}", f"{period1_volatility - period2_volatility:+.3f} vs {period2_label}")
-                        
-                        # Calculate trend (slope of best fit line)
-                        period1_slope = np.polyfit(period1_daily['days_ago'], period1_daily['score'], 1)[0] * -100  # Negate because days_ago is reversed
-                        period2_slope = np.polyfit(period2_daily['days_ago'], period2_daily['score'], 1)[0] * -100  # Multiply by 100 for readability
-                        
-                        st.metric("Sentiment Trend", f"{period1_slope:.2f}", f"{period1_slope - period2_slope:+.2f} vs {period2_label}")
-                else:
-                    st.warning("Insufficient data for one or both time periods. Try selecting longer periods.")
+                        st.warning("No sentiment data available for comparison.")
+                except Exception as e:
+                    st.error(f"Error comparing time periods: {str(e)}")
+                    st.info("Try selecting different time periods or check the data format.")
             
             with compare_tabs[2]:
                 st.subheader("Entity Sentiment Comparison")
