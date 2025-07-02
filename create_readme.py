@@ -1,4 +1,7 @@
-# 🚀 Big Data Sentiment Analysis Engine
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+readme_content = """# 🚀 Big Data Sentiment Analysis Engine
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://python.org)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.20+-red.svg)](https://streamlit.io)
@@ -13,7 +16,6 @@
 
 - [🎯 Project Overview](#-project-overview)
 - [✨ Key Features](#-key-features)
-- [🏗️ System Architecture](#️-system-architecture)
 - [🛠️ Tech Stack](#️-tech-stack)
 - [📊 Dashboard Screenshots](#-dashboard-screenshots)
 - [🚀 Quick Start](#-quick-start)
@@ -230,7 +232,7 @@ python -m venv venv
 
 # Activate virtual environment
 # Windows:
-venv\Scripts\activate
+venv\\Scripts\\activate
 # macOS/Linux:
 source venv/bin/activate
 
@@ -544,4 +546,13 @@ This project is licensed under the MIT License.
 
 [🚀 **View Live Demo**](https://github.com/AsukaFurukawa/BigData-Sentiment-Analysis) | [📖 **Read Documentation**](docs/) | [🐛 **Report Issues**](https://github.com/AsukaFurukawa/BigData-Sentiment-Analysis/issues)
 
-</div> 
+</div>
+"""
+
+# Write the README content to file
+with open('README.md', 'w', encoding='utf-8') as f:
+    f.write(readme_content)
+
+print("✅ README.md created successfully!")
+print(f"📄 File size: {len(readme_content):,} characters")
+print(f"📏 Lines: {readme_content.count(chr(10)) + 1}") 
